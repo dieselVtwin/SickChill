@@ -1,41 +1,16 @@
-# coding=utf-8
-# This file is part of SickChill.
-#
-# URL: https://sickchill.github.io
-# Git: https://github.com/SickChill/SickChill.git
-#
-# SickChill is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# SickChill is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with SickChill. If not, see <http://www.gnu.org/licenses/>.
-
-"""
-Common helper functions
-"""
-
-from __future__ import print_function, unicode_literals
-
-import glob
-import os
 import re
 from fnmatch import fnmatch
 
-import six
 from github import Github
-from github.GithubException import BadCredentialsException, TwoFactorException
+from github.GithubException import (BadAttributeException, BadCredentialsException, BadUserAgentException, GithubException, RateLimitExceededException,
+                                    TwoFactorException, UnknownObjectException)
 
-import sickbeard
+import sickchill
+from sickchill import settings
 
 dateFormat = '%Y-%m-%d'
 dateTimeFormat = '%Y-%m-%d %H:%M:%S'
+
 # Mapping HTTP status codes to official W3C names
 HTTP_STATUS_CODES = {
     300: 'Multiple Choices',
@@ -146,12 +121,12 @@ def is_sync_file(filename):
     :return: ``True`` if the ``filename`` is a sync file, ``False`` otherwise
     """
 
-    if isinstance(filename, six.string_types):
+    if isinstance(filename, str):
         extension = filename.rpartition('.')[2].lower()
 
-        return extension in sickbeard.SYNC_FILES.split(',') or \
+        return extension in settings.SYNC_FILES.split(',') or \
             filename.startswith('.syncthing') or \
-            any(fnmatch(filename, match) for match in sickbeard.SYNC_FILES.split(','))
+            any(fnmatch(filename, match) for match in settings.SYNC_FILES.split(','))
 
     return False
 
@@ -163,7 +138,7 @@ def is_torrent_or_nzb_file(filename):
     :return: ``True`` if the ``filename`` is a NZB file or a torrent file, ``False`` otherwise
     """
 
-    if not isinstance(filename, six.string_types):
+    if not isinstance(filename, str):
         return False
 
     return filename.rpartition('.')[2].lower() in ['nzb', 'torrent']
@@ -259,8 +234,8 @@ def remove_extension(filename):
     :return: The ``filename`` without its extension.
     """
 
-    if isinstance(filename, six.string_types) and '.' in filename:
-        basename, _, extension = filename.rpartition('.')
+    if isinstance(filename, str) and '.' in filename:
+        basename, dot, extension = filename.rpartition('.')
 
         if basename and extension.lower() in ['nzb', 'torrent'] + MEDIA_EXTENSIONS:
             return basename
@@ -276,7 +251,7 @@ def replace_extension(filename, new_extension):
     :return: The ``filename`` with the new extension
     """
 
-    if isinstance(filename, six.string_types) and '.' in filename:
+    if isinstance(filename, str) and '.' in filename:
         basename = filename.rpartition('.')[0]
         if basename:
             return '{0}.{1}'.format(basename, new_extension)
@@ -291,8 +266,11 @@ def sanitize_filename(filename):
     :return: The ``filename``cleaned
     """
 
-    if isinstance(filename, six.string_types):
-        filename = re.sub(r'[\\/\*]', '-', filename)
+    if isinstance(filename, bytes):
+        filename = filename.decode()
+
+    if isinstance(filename, str):
+        filename = re.sub(r'[\\/*]', '-', filename)
         filename = re.sub(r'[:"<>|?]', '', filename)
         filename = re.sub(r'™|-u2122', '', filename)  # Trade Mark Sign unicode: \u2122
         filename = filename.strip(' .')
@@ -336,66 +314,48 @@ def episode_num(season=None, episode=None, **kwargs):
             return '{0:0>3}'.format(season or episode)
 
 
-# Backport glob.escape from python 3.4
-# https://hg.python.org/cpython/file/3.4/Lib/glob.py#l87
-MAGIC_CHECK = re.compile('([*?[])')
-MAGIC_CHECK_BYTES = re.compile(b'([*?[])')
-
-
-# https://hg.python.org/cpython/file/3.4/Lib/glob.py#l100
-def glob_escape(pathname):
-    """Escape all special characters.
-    """
-    # Escaping is done by wrapping any of "*?[" between square brackets.
-    # Metacharacters do not work in the drive part and shouldn't be escaped.
-    drive, pathname = os.path.splitdrive(pathname)
-    if isinstance(pathname, bytes):
-        pathname = MAGIC_CHECK_BYTES.sub(br'[\1]', pathname)
-    else:
-        pathname = MAGIC_CHECK.sub(r'[\1]', pathname)
-    return drive + pathname
-
-CUSTOM_GLOB = glob
-CUSTOM_GLOB.escape = glob_escape
-
-
 def setup_github():
     """
     Instantiate the global github connection, for checking for updates and submitting issues
     """
 
     try:
-        if sickbeard.GIT_AUTH_TYPE == 0 and sickbeard.GIT_USERNAME and sickbeard.GIT_PASSWORD:
-            # Basic Username/Password Auth
-            sickbeard.gh = Github(
-                login_or_token=sickbeard.GIT_USERNAME,
-                password=sickbeard.GIT_PASSWORD, user_agent="SickChill")
-            # This will trigger BadCredentialsException if user/pass are wrong
-            sickbeard.gh.get_organization(sickbeard.GIT_ORG)
-
-        elif sickbeard.GIT_AUTH_TYPE == 1 and sickbeard.GIT_TOKEN:
+        if settings.GIT_TOKEN:
             # Token Auth - allows users with Two-Factor Authorization (2FA) enabled on Github to connect their account.
-            sickbeard.gh = Github(
-                login_or_token=sickbeard.GIT_TOKEN, user_agent="SickChill")
+            settings.gh = Github(
+                login_or_token=settings.GIT_TOKEN, user_agent="SickChill")
             # This will trigger:
             # * BadCredentialsException if token is invalid
             # * TwoFactorException if user has enabled Github-2FA
             #   but didn't set a personal token in the configuration.
-            sickbeard.gh.get_organization(sickbeard.GIT_ORG)
-
-            # Update GIT_USERNAME if it's not the same, so we don't run into problems later on.
-            gh_user = sickbeard.gh.get_user().login
-            sickbeard.GIT_USERNAME = gh_user if sickbeard.GIT_USERNAME != gh_user else sickbeard.GIT_USERNAME
-
-    except (Exception, BadCredentialsException, TwoFactorException) as error:
-        sickbeard.gh = None
-        sickbeard.logger.log('Unable to setup GitHub properly with your github login. Please'
-                             ' check your credentials. Error: {0}'.format(error), sickbeard.logger.WARNING)
-
-    if not sickbeard.gh:
-        try:
-            sickbeard.gh = Github(user_agent="SickChill")
-        except Exception as error:
-            sickbeard.gh = None
-            sickbeard.logger.log('Unable to setup GitHub properly. GitHub will not be '
-                                 'available. Error: {0}'.format(error), sickbeard.logger.WARNING)
+            settings.gh.get_organization(settings.GIT_ORG)
+        if not settings.gh:
+            settings.gh = Github(user_agent="SickChill")
+            settings.gh.get_organization(settings.GIT_ORG)
+    except BadCredentialsException as error:
+        settings.gh = None
+        sickchill.logger.warning(_('Unable to setup GitHub properly with your github token. Please check your credentials. Error: {0}').format(error))
+    except TwoFactorException as error:
+        settings.gh = None
+        sickchill.logger.warning(_('Unable to setup GitHub properly with your github token due to 2FA - Make sure this token works with 2FA. Error: {0}').format(
+            error))
+    except RateLimitExceededException as error:
+        settings.gh = None
+        if settings.GIT_TOKEN:
+            sickchill.logger.warning(
+                _('Unable to setup GitHub properly, You are currently being throttled by rate limiting for too many requests. Error: {0}').format(error))
+        else:
+            sickchill.logger.warning(
+                _('Unable to setup GitHub properly, You are currently being throttled by rate limiting for too many requests - Try adding an access token. Error: {0}').format(error))
+    except UnknownObjectException as error:
+        settings.gh = None
+        sickchill.logger.warning(_('Unable to setup GitHub properly, it seems to be down or your organization/repo is set wrong. Error: {0}').format(error))
+    except BadUserAgentException as error:
+        settings.gh = None
+        sickchill.logger.warning(_('Unable to setup GitHub properly, GitHub doesn\'t like the user-agent. Error: {0}').format(error))
+    except BadAttributeException as error:
+        settings.gh = None
+        sickchill.logger.error(_('Unable to setup GitHub properly, There might be an error with the library. Error: {0}').format(error))
+    except (GithubException, Exception) as error:
+        settings.gh = None
+        sickchill.logger.error(_('Unable to setup GitHub properly. GitHub will not be available. Error: {0}').format(error))

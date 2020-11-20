@@ -1,44 +1,17 @@
-# coding=utf-8
-# This file is part of SickChill.
-#
-# URL: https://sickchill.github.io
-# Git: https://github.com/SickChill/SickChill.git
-#
-# SickChill is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# SickChill is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with SickChill. If not, see <http://www.gnu.org/licenses/>.
+
 
 """
 Test shows
 """
 
-# pylint: disable=line-too-long
 
-from __future__ import print_function, unicode_literals
-
-import os
-import sys
 import unittest
 
-sys.path.insert(1, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../lib')))
-sys.path.insert(1, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
-
-import sickbeard
-import six
-
-from sickbeard.common import Quality
-from sickbeard.tv import TVShow
+from sickchill import settings
 from sickchill.helper.exceptions import MultipleShowObjectsException
+from sickchill.oldbeard.common import Quality
 from sickchill.show.Show import Show
+from sickchill.tv import TVShow
 
 
 class ShowTests(unittest.TestCase):
@@ -50,9 +23,9 @@ class ShowTests(unittest.TestCase):
         """
         Test find tv shows by indexer_id
         """
-        sickbeard.QUALITY_DEFAULT = Quality.FULLHDTV
+        settings.QUALITY_DEFAULT = Quality.FULLHDTV
 
-        sickbeard.showList = []
+        settings.showList = []
 
         show123 = TestTVShow(0, 123)
         show456 = TestTVShow(0, 456)
@@ -68,7 +41,7 @@ class ShowTests(unittest.TestCase):
             (False, 12.3): None,
             (True, None): None,
             (True, ''): None,
-            (True, '123'): None,
+            (True, '123'): show123,
             (True, 123): show123,
             (True, 12.3): None,
             (True, 456): show456,
@@ -79,11 +52,11 @@ class ShowTests(unittest.TestCase):
             (False, ''): None,
             (False, '123'): None,
             (True, ''): None,
-            (True, '123'): None,
+            (True, '123'): show123,
         }
 
         for tests in test_cases, unicode_test_cases:
-            for ((use_shows, indexer_id), result) in six.iteritems(tests):
+            for ((use_shows, indexer_id), result) in tests.items():
                 if use_shows:
                     self.assertEqual(Show.find(shows, indexer_id), result)
                 else:
@@ -96,14 +69,14 @@ class ShowTests(unittest.TestCase):
         """
         Tests if the indexer_id is valid and if so if it returns the right show
         """
-        sickbeard.QUALITY_DEFAULT = Quality.FULLHDTV
+        settings.QUALITY_DEFAULT = Quality.FULLHDTV
 
-        sickbeard.showList = []
+        settings.showList = []
 
         show123 = TestTVShow(0, 123)
         show456 = TestTVShow(0, 456)
         show789 = TestTVShow(0, 789)
-        sickbeard.showList = [
+        settings.showList = [
             show123,
             show456,
             show789,
@@ -127,7 +100,7 @@ class ShowTests(unittest.TestCase):
         )
 
         for (index, indexer_id) in enumerate(indexer_id_list):
-            self.assertEqual(Show._validate_indexer_id(indexer_id), results_list[index])  # pylint: disable=protected-access
+            self.assertEqual(Show._validate_indexer_id(indexer_id), results_list[index])
 
 
 class TestTVShow(TVShow):
@@ -136,7 +109,7 @@ class TestTVShow(TVShow):
     """
 
     def __init__(self, indexer, indexer_id):
-        super(TestTVShow, self).__init__(indexer, indexer_id)
+        super().__init__(indexer, indexer_id)
 
     def loadFromDB(self):
         """

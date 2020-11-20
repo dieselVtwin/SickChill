@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import bisect
 import io
 import json
@@ -14,8 +11,9 @@ from requests import Session
 from subliminal import __short_version__
 from subliminal.cache import region, SHOW_EXPIRATION_TIME
 from subliminal.exceptions import AuthenticationError, ConfigurationError, ProviderError
+from subliminal.matches import guess_matches
 from subliminal.providers import ParserBeautifulSoup, Provider
-from subliminal.subtitle import fix_line_ending, guess_matches, Subtitle
+from subliminal.subtitle import fix_line_ending, Subtitle
 from subliminal.utils import sanitize
 from subliminal.video import Episode, Movie
 
@@ -28,7 +26,7 @@ class SubsCenterSubtitle(Subtitle):
 
     def __init__(self, language, hearing_impaired, page_link, series, season, episode, title, subtitle_id, subtitle_key,
                  subtitle_version, downloaded, releases):
-        super(SubsCenterSubtitle, self).__init__(language, hearing_impaired, page_link)
+        super().__init__(language, hearing_impaired, page_link)
         self.series = series
         self.season = season
         self.episode = episode
@@ -209,9 +207,9 @@ class SubsCenterProvider(Provider):
                         logger.debug('Found subtitle %r', subtitle)
                         subtitles[subtitle_id] = subtitle
 
-        return subtitles.values()
+        return list(subtitles.values())
 
-    def list_subtitles(self, video, languages):
+    def list_subtitles(self, video: Episode, languages):
         season = episode = None
         title = video.title
 
@@ -222,7 +220,7 @@ class SubsCenterProvider(Provider):
 
         return [s for s in self.query(title, season, episode) if s.language in languages]
 
-    def download_subtitle(self, subtitle):
+    def download_subtitle(self, subtitle: SubsCenterSubtitle):
         # download
         url = self.server_url + 'subtitle/download/{}/{}/'.format(subtitle.language.alpha2, subtitle.subtitle_id)
         params = {'v': subtitle.subtitle_version, 'key': subtitle.subtitle_key}

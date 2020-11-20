@@ -1,31 +1,8 @@
-# coding=utf-8
-# This file is part of SickChill.
-#
-# URL: https://sickchill.github.io
-# Git: https://github.com/SickChill/SickChill.git
-#
-# SickChill is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# SickChill is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with SickChill. If not, see <http://www.gnu.org/licenses/>.
-
-from __future__ import unicode_literals
-
 from datetime import datetime, timedelta
 
-import six
-
-from sickbeard.common import Quality
-from sickbeard.db import DBConnection
 from sickchill.helper.common import try_int
+from sickchill.oldbeard.common import Quality
+from sickchill.oldbeard.db import DBConnection
 
 
 class History(object):
@@ -93,15 +70,15 @@ class History(object):
         data = []
         for result in results:
             data.append({
-                'action': result[b'action'],
-                'date': result[b'date'],
-                'episode': result[b'episode'],
-                'provider': result[b'provider'],
-                'quality': result[b'quality'],
-                'resource': result[b'resource'],
-                'season': result[b'season'],
-                'show_id': result[b'showid'],
-                'show_name': result[b'show_name']
+                'action': result['action'],
+                'date': result['date'],
+                'episode': result['episode'],
+                'provider': result['provider'],
+                'quality': result['quality'],
+                'resource': result['resource'],
+                'season': result['season'],
+                'show_id': result['showid'],
+                'show_name': result['show_name']
             })
 
         return data
@@ -111,6 +88,7 @@ class History(object):
         Remove all elements older than 30 days from the history
         """
 
+        # self.db.action("DELETE FROM history WHERE date < datetime('now', '-30 days')")
         self.db.action(
             'DELETE '
             'FROM history '
@@ -120,7 +98,7 @@ class History(object):
 
     @staticmethod
     def _get_actions(action):
-        action = action.lower() if isinstance(action, six.string_types) else ''
+        action = action.lower() if isinstance(action, str) else ''
 
         if action == 'downloaded':
             return Quality.DOWNLOADED

@@ -1,30 +1,9 @@
-# coding=utf-8
-# This file is part of SickChill.
-#
-# URL: https://sickchill.github.io
-# Git: https://github.com/SickChill/SickChill.git
-#
-# SickChill is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# SickChill is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with SickChill. If not, see <http://www.gnu.org/licenses/>.
-
-from __future__ import unicode_literals
-
 from datetime import date
 
-import sickbeard
-from sickbeard.common import Quality, SKIPPED, WANTED
-from sickbeard.db import DBConnection
-from sickchill.helper.exceptions import CantRefreshShowException, CantRemoveShowException, ex, MultipleShowObjectsException
+from sickchill import settings
+from sickchill.helper.exceptions import CantRefreshShowException, CantRemoveShowException, MultipleShowObjectsException
+from sickchill.oldbeard.common import Quality, SKIPPED, WANTED
+from sickchill.oldbeard.db import DBConnection
 
 
 class Show(object):
@@ -49,9 +28,9 @@ class Show(object):
 
         if show:
             try:
-                sickbeard.showQueueScheduler.action.remove_show(show, bool(remove_files))
+                settings.showQueueScheduler.action.remove_show(show, bool(remove_files))
             except CantRemoveShowException as exception:
-                return ex(exception), show
+                return str(exception), show
 
         return None, show
 
@@ -64,11 +43,20 @@ class Show(object):
         :return: The desired show if found, ``None`` if not found
         :throw: ``MultipleShowObjectsException`` if multiple shows match the provided ``indexer_id``
         """
-
-        if indexer_id is None or shows is None or len(shows) == 0:
+        if not indexer_id or not shows:
             return None
 
-        indexer_ids = [indexer_id] if not isinstance(indexer_id, list) else indexer_id
+        if not isinstance(indexer_id, (str, int)):
+            return None
+
+        if isinstance(indexer_id, list):
+            if not isinstance(indexer_id[0], (int, str)):
+                return None
+
+            indexer_ids = [int(x) for x in indexer_id]
+        else:
+            indexer_ids = [int(indexer_id)]
+
         results = [show for show in shows if show.indexerid in indexer_ids]
 
         if not results:
@@ -82,8 +70,8 @@ class Show(object):
     @staticmethod
     def overall_stats():
         db = DBConnection()
-        shows = sickbeard.showList
-        today = str(date.today().toordinal())
+        shows = settings.showList
+        today = date.today().toordinal()
 
         downloaded_status = Quality.DOWNLOADED + Quality.ARCHIVED
         snatched_status = Quality.SNATCHED + Quality.SNATCHED_PROPER + Quality.SNATCHED_BEST
@@ -110,13 +98,13 @@ class Show(object):
         }
 
         for result in results:
-            if result[b'status'] in downloaded_status:
+            if result['status'] in downloaded_status:
                 stats['episodes']['downloaded'] += 1
                 stats['episodes']['total'] += 1
-            elif result[b'status'] in snatched_status:
+            elif result['status'] in snatched_status:
                 stats['episodes']['snatched'] += 1
                 stats['episodes']['total'] += 1
-            elif result[b'airdate'] <= today and result[b'status'] in total_status:
+            elif result['airdate'] <= today and result['status'] in total_status:
                 stats['episodes']['total'] += 1
 
         return stats
@@ -147,9 +135,10 @@ class Show(object):
         return None, show
 
     @staticmethod
-    def refresh(indexer_id):
+    def refresh(indexer_id, force=False):
         """
         Try to refresh a show
+        :param force: Force refresh
         :param indexer_id: The unique id of the show to refresh
         :return: A tuple containing:
          - an error message if the show could not be refreshed, ``None`` otherwise
@@ -162,9 +151,9 @@ class Show(object):
             return error, show
 
         try:
-            sickbeard.showQueueScheduler.action.refresh_show(show)
+            settings.showQueueScheduler.action.refresh_show(show, force)
         except CantRefreshShowException as exception:
-            return ex(exception), show
+            return str(exception), show
 
         return None, show
 
@@ -184,7 +173,7 @@ class Show(object):
             return 'Invalid show ID', None
 
         try:
-            show = Show.find(sickbeard.showList, indexer_id)
+            show = Show.find(settings.showList, indexer_id)
         except MultipleShowObjectsException:
             return 'Unable to find the specified show', None
 

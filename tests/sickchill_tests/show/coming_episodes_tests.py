@@ -1,41 +1,13 @@
-# coding=utf-8
-# This file is part of SickChill.
-#
-# URL: https://sickchill.github.io
-# Git: https://github.com/SickChill/SickChill.git
-#
-# SickChill is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# SickChill is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with SickChill. If not, see <http://www.gnu.org/licenses/>.
+
 
 """
 Test coming episodes
 """
 
-# pylint: disable=line-too-long
 
-from __future__ import print_function, unicode_literals
-
-import os
-import sys
 import unittest
 
-sys.path.insert(1, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../lib')))
-sys.path.insert(1, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
-
 from sickchill.show.ComingEpisodes import ComingEpisodes
-
-
-import six
 
 
 class ComingEpisodesTests(unittest.TestCase):
@@ -59,7 +31,7 @@ class ComingEpisodesTests(unittest.TestCase):
         )
 
         for (index, categories) in enumerate(categories_list):
-            self.assertEqual(ComingEpisodes._get_categories(categories), results_list[index])  # pylint: disable=protected-access
+            self.assertEqual(ComingEpisodes._get_categories(categories), results_list[index])
 
     def test_get_categories_map(self):
         """
@@ -78,7 +50,7 @@ class ComingEpisodesTests(unittest.TestCase):
         )
 
         for (index, categories) in enumerate(categories_list):
-            self.assertEqual(ComingEpisodes._get_categories_map(categories), results_list[index])  # pylint: disable=protected-access
+            self.assertEqual(ComingEpisodes._get_categories_map(categories), results_list[index])
 
     def test_get_sort(self):
         """
@@ -108,8 +80,8 @@ class ComingEpisodesTests(unittest.TestCase):
         }
 
         for tests in test_cases, unicode_test_cases:
-            for (sort, result) in six.iteritems(tests):
-                self.assertEqual(ComingEpisodes._get_sort(sort), result)  # pylint: disable=protected-access
+            for (sort, result) in tests.items():
+                self.assertEqual(ComingEpisodes._get_sort(sort), result)
 
 
 if __name__ == '__main__':

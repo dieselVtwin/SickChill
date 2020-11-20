@@ -89,7 +89,7 @@ module.exports = function(grunt) {
         clean: {
             dist: './dist/',
             'bower_components': './bower_components',
-            fonts: './gui/slick/css/*.ttf',
+            fonts: './sickchill/gui/slick/css/fonts',
             options: {
                 force: true
             }
@@ -112,6 +112,7 @@ module.exports = function(grunt) {
                 mainFiles: {
                     'tablesorter': [
                         'dist/js/jquery.tablesorter.combined.min.js',
+                        'dist/js/parsers/parser-metric.min.js',
                         'dist/js/widgets/widget-columnSelector.min.js',
                         'dist/css/theme.blue.min.css'
                     ],
@@ -129,8 +130,12 @@ module.exports = function(grunt) {
                         "item.js",
                         "outlayer.js"
                     ],
-                    "openSans": [
-                        "*.ttf", "*.css"
+                    "open-sans-fontface": [
+                        "*.css",
+                        "fonts/**/*"
+                    ],
+                    "jqueryui-touch-punch": [
+                        "jquery.ui.touch-punch.min.js"
                     ]
                 },
                 bowerOptions: {
@@ -143,11 +148,37 @@ module.exports = function(grunt) {
                 files: [{
                     expand: true,
                     dot: true,
-                    cwd: 'bower_components/openSans',
+                    cwd: 'bower_components/open-sans-fontface',
                     src: [
-                        '*.ttf'
+                        'fonts/**/*'
                     ],
-                    dest: './gui/slick/css/'
+                    dest: './sickchill/gui/slick/css/'
+                }]
+            },
+            'fork-awesome': {
+                files: [{
+                    expand: true,
+                    dot: true,
+                    cwd: 'bower_components/fork-awesome',
+                    src: [
+                        'fonts/**/*',
+                        'css/**/*.min.css',
+                        'css/**/*.css.map'
+                    ],
+                    dest: './sickchill/gui/slick/'
+                }]
+            },
+            'font-awesome': {
+                files: [{
+                    expand: true,
+                    dot: true,
+                    cwd: 'bower_components/font-awesome',
+                    src: [
+                        'fonts/**/*',
+                        'css/**/*.min.css',
+                        'css/**/*.css.map'
+                    ],
+                    dest: './sickchill/gui/slick/'
                 }]
             },
             glyphicon: {
@@ -162,19 +193,19 @@ module.exports = function(grunt) {
                         '*.woff',
                         '*.woff2'
                     ],
-                    dest: './gui/slick/fonts/'
+                    dest: './sickchill/gui/slick/fonts/'
                 }]
             }
         },
         uglify: {
             bower: {
                 files: {
-                    './gui/slick/js/vender.min.js': ['./dist/bower.js']
+                    './sickchill/gui/slick/js/vendor.min.js': ['./dist/bower.js']
                 }
             },
             core: {
                 files: {
-                    './gui/slick/js/core.min.js': ['./gui/slick/js/core.js']
+                    './sickchill/gui/slick/js/core.min.js': ['./sickchill/gui/slick/js/core.js']
                 }
             }
         },
@@ -185,12 +216,12 @@ module.exports = function(grunt) {
             },
             bower: {
                 files: {
-                    './gui/slick/css/vender.min.css': ['./dist/bower.css']
+                    './sickchill/gui/slick/css/vendor.min.css': ['./dist/bower.css']
                 }
             },
             core: {
                 files: {
-                    './gui/slick/css/core.min.css': ['./dist/core.css']
+                    './sickchill/gui/slick/css/core.min.css': ['./dist/core.css']
                 }
             }
         },
@@ -202,7 +233,7 @@ module.exports = function(grunt) {
                 },
                 files: [{
                     expand: true,
-                    src: './locale/*/LC_MESSAGES/messages.po',
+                    src: 'sickchill/locale/*/LC_MESSAGES/messages.po',
                     dest: '',
                     ext: '' // workaround for relative files
                 }]
@@ -229,7 +260,7 @@ module.exports = function(grunt) {
             'commit_changed_files': { // Choose what to commit.
                 cmd: function(travis) {
                     grunt.config('stop_no_changes', Boolean(travis));
-                    return 'git status -s -- locale/ gui/';
+                    return 'git status -s -- sickchill/locale/ sickchill/gui/';
                 },
                 stdout: false,
                 callback: function(err, stdout) {
@@ -240,14 +271,14 @@ module.exports = function(grunt) {
 
                     var commitMsg = [];
                     var commitPaths = [];
-                    if (stdout.match(/gui\/.*(vender|core)\.min\.(js|css)$/gm)) {
+                    if (stdout.match(/sickchill\/gui\/.*(vendor|core)\.min\.(js|css)$/gm)) {
                         commitMsg.push('Grunt');
-                        commitPaths.push('gui/**/vender.min.*');
-                        commitPaths.push('gui/**/core.min.*');
+                        commitPaths.push('sickchill/gui/**/vendor.min.*');
+                        commitPaths.push('sickchill/gui/**/core.min.*');
                     }
-                    if (stdout.match(/locale\/.*(pot|po|mo|json)$/gm)) {
+                    if (stdout.match(/sickchill\/locale\/.*(pot|po|mo|json)$/gm)) {
                         commitMsg.push('Update translations');
-                        commitPaths.push('locale/');
+                        commitPaths.push('sickchill/locale/');
                     }
 
                     if (!commitMsg.length || !commitPaths.length) {
@@ -380,7 +411,7 @@ module.exports = function(grunt) {
                     if (!file) {
                         grunt.fatal('Missing file path.');
                     }
-                    var path = file.slice(0, -24); // slices 'sickchill-news/CHANGES.md' (len=24)
+                    var path = file.slice(0, -25); // slices 'sickchill-news/CHANGES.md' (len=25)
                     if (!path) {
                         grunt.fatal('path = "' + path + '"');
                     }
